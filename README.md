@@ -1,0 +1,2 @@
+# TOSITTA
+OCR Android Application
