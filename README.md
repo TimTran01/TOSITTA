@@ -1,2 +1,2 @@
 # TOSITTA
-OCR Android Application
+Travel Oriented Static Image Text Translation App, an OCR Android Application
