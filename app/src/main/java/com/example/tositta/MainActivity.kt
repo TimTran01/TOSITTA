@@ -10,10 +10,18 @@ import android.widget.ArrayAdapter
 import android.widget.AdapterView
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.tositta.databinding.ActivityMainBinding
+import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+import com.google.mlkit.nl.languageid.LanguageIdentification
+import com.google.mlkit.nl.languageid.LanguageIdentifier
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslatorOptions
+
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -93,10 +101,68 @@ class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { result ->
                 binding.ocrResultTextView.text = result.text
                 binding.ocrResultContainer.visibility = View.VISIBLE
+                runTranslation(result.text)
+
             }
             .addOnFailureListener { e ->
                 binding.ocrResultTextView.text = "OCR Error: ${e.message}"
                 binding.ocrResultContainer.visibility = View.VISIBLE
             }
+
+
+
+
     }
+
+
+
+    private fun runTranslation(textToTranslate: String){
+        val languageIdentifier = LanguageIdentification.getClient()
+        languageIdentifier.identifyLanguage(textToTranslate)
+            .addOnSuccessListener { languageCode ->
+                if (languageCode == "und") {
+                    binding.langIDTextView.text = "Cannot Determine Language: Make sure you have selected the correct language to detect."
+                    binding.langIDContainer.visibility = View.VISIBLE
+                    binding.translatedTextContainer.visibility = View.INVISIBLE
+                } else {
+                    binding.langIDTextView.text = languageCode
+                    binding.langIDContainer.visibility = View.VISIBLE
+
+                    val options = TranslatorOptions.Builder()
+                        .setSourceLanguage(TranslateLanguage.fromLanguageTag(languageCode).toString())
+                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+                        .build()
+                    val textTranslator = Translation.getClient(options)
+
+                    var conditions = DownloadConditions.Builder()
+                        .requireWifi()
+                        .build()
+                    textTranslator.downloadModelIfNeeded(conditions)
+                        .addOnSuccessListener {
+                            textTranslator.translate(textToTranslate)
+                                .addOnSuccessListener { translatedText ->
+                                    binding.translatedTextTextView.text = translatedText
+                                    binding.translatedTextContainer.visibility = View.VISIBLE
+                                    textTranslator.close()
+                                }
+                                .addOnFailureListener { exception ->
+                                    binding.translatedTextTextView.text = "Cannot Translate"
+                                    binding.translatedTextContainer.visibility = View.VISIBLE
+                                    textTranslator.close()
+                                }
+                        }
+                        .addOnFailureListener { exception ->
+                            binding.translatedTextTextView.text = "Cannot Download Model"
+                            binding.translatedTextContainer.visibility = View.VISIBLE
+                        }
+
+                }
+            }
+            .addOnFailureListener {
+                // Model couldn’t be loaded or other internal error.
+                // ...
+            }
+
+    }
+
 }
