@@ -27,8 +27,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    //Global variable to let us set selected language. Default is 0 which is also default for spinner pos 0 (latin)
+    // Global variable to let us set the image language. Default is 0 which is also default for spinner pos 0 (latin)
     var selectedLanguage: Int = 0
+
+    // Variable to choose the output language
+    var outputLanguage: Int = 0
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -52,19 +55,19 @@ class MainActivity : AppCompatActivity() {
             pickImageFromGallery()
         }
 
-        //Create Spinner for selecting languages
-        val spinner = binding.selectLanguageSpinner
-        //List of supported languages
-        val languages = listOf("Latin", "Japanese")
-        val adapter = ArrayAdapter(
+        // Create Spinner for selecting input language
+        val spinnerInput = binding.selectInputLanguageSpinner
+        // List of supported languages
+        val languagesInput = listOf("Latin", "Japanese")
+        val adapterInput = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
-            languages
+            languagesInput
         )
-        spinner.adapter = adapter
+        spinnerInput.adapter = adapterInput
 
-        //When selecting a language, set global 'selectLanguage' variable equal to the index of the selected language
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        // When selecting a language, set global 'selectLanguage' variable equal to the index of the selected language
+        spinnerInput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>?,
                 view: View?,
@@ -74,9 +77,38 @@ class MainActivity : AppCompatActivity() {
                 selectedLanguage = pos
             }
 
-            //If nothing is selected, set language to default (latin)
+            // If nothing is selected, set language to default (latin)
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 selectedLanguage = 0
+            }
+
+        }
+
+        // Create Spinner for selecting output language
+        val spinnerOutput = binding.selectOutputLanguageSpinner
+        // List of supported languages
+        val languagesOutput = listOf("Latin", "Japanese")
+        val adapterOutput = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            languagesOutput
+        )
+        spinnerOutput.adapter = adapterOutput
+
+        // When selecting a language, set global 'selectLanguage' variable equal to the index of the selected language
+        spinnerOutput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                pos: Int,
+                id: Long
+            ) {
+                outputLanguage = pos
+            }
+
+            //If nothing is selected, set language to default (latin)
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                outputLanguage = 0
             }
 
         }
