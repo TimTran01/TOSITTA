@@ -9,7 +9,7 @@
         android:id="@+id/inputLanguageText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Select Language To Detect:"
+        android:text="Select Language To Detect"
         android:textColor="#000000"
         android:textSize="20sp" />
 
@@ -20,6 +20,15 @@
         android:layout_marginBottom="15dp"
         android:background="@drawable/spinner_bg"
         android:dropDownVerticalOffset="45dp" />
+
+    <TextView
+        android:id="@+id/suggestionTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:textColor="#C5681A"
+        android:textAlignment="center"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/outputLanguageText"

@@ -26,11 +26,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var lastBitmap: Bitmap? = null
 
-    // Global variable to let us set the image language. Default is 0, which is also default for spinner pos 0 (Latin)
-    var selectedLanguage: Int = 0
-
-    // Variable to choose the output language
-    var outputLanguage: Int = 0
+    // Store language selections as strings for clarity
+    var selectedLanguage: String = "English (Default)"
+    var outputLanguage: String = "English"
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -56,13 +54,13 @@ class MainActivity : AppCompatActivity() {
 
         // Create Spinner for selecting input language
         val spinnerInput = binding.selectInputLanguageSpinner
-        val languagesInput = listOf("Latin", "Japanese")
+        val languagesInput = listOf("English (Default)", "Japanese", "Spanish", "French")
         val adapterInput = ArrayAdapter(this, android.R.layout.simple_spinner_item, languagesInput)
         spinnerInput.adapter = adapterInput
 
         spinnerInput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                selectedLanguage = pos
+                selectedLanguage = parent?.getItemAtPosition(pos).toString()
                 // If an image has already been selected, re-run OCR with the new language
                 lastBitmap?.let {
                     runOCR(it)
@@ -70,19 +68,19 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                selectedLanguage = 0
+                selectedLanguage = "English (Default)"
             }
         }
 
         // Create Spinner for selecting output language
         val spinnerOutput = binding.selectOutputLanguageSpinner
-        val languagesOutput = listOf("Latin", "Japanese")
+        val languagesOutput = listOf("English", "Japanese", "Spanish", "French")
         val adapterOutput = ArrayAdapter(this, android.R.layout.simple_spinner_item, languagesOutput)
         spinnerOutput.adapter = adapterOutput
 
         spinnerOutput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                outputLanguage = pos
+                outputLanguage = parent?.getItemAtPosition(pos).toString()
                 val currentOcrText = binding.ocrResultTextView.text.toString()
                 // If there's already OCR text, re-translate it with the new target language
                 if (currentOcrText.isNotBlank() && !currentOcrText.startsWith("OCR Error")) {
@@ -91,7 +89,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                outputLanguage = 0
+                outputLanguage = "English"
             }
         }
     }
@@ -105,8 +103,8 @@ class MainActivity : AppCompatActivity() {
     private fun runOCR(bitmap: Bitmap) {
         val image = InputImage.fromBitmap(bitmap, 0)
         val recognizer = when (selectedLanguage) {
-            1 -> TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()) // Japanese
-            else -> TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) // Latin
+            "Japanese" -> TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build())
+            else -> TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) // Latin, Spanish, French, etc.
         }
 
         recognizer.process(image)
@@ -133,12 +131,35 @@ class MainActivity : AppCompatActivity() {
                     binding.langIDContainer.visibility = View.VISIBLE
                     binding.translatedTextContainer.visibility = View.GONE
                 } else {
+                    val spinnerLanguageCode = when(selectedLanguage) {
+                        "Japanese" -> "ja"
+                        "Spanish" -> "es"
+                        "French" -> "fr"
+                        else -> "en" // Default to English
+                    }
+
+                    if (languageCode != spinnerLanguageCode) {
+                        val detectedLanguageName = when(languageCode) {
+                            "ja" -> "Japanese"
+                            "es" -> "Spanish"
+                            "fr" -> "French"
+                            "en" -> "English"
+                            else -> languageCode
+                        }
+                        binding.suggestionTextView.text = "(Did you mean to select $detectedLanguageName?)"
+                        binding.suggestionTextView.visibility = View.VISIBLE
+                    } else {
+                        binding.suggestionTextView.visibility = View.GONE
+                    }
+
                     binding.langIDTextView.text = languageCode
                     binding.langIDContainer.visibility = View.VISIBLE
 
                     val sourceLanguage = TranslateLanguage.fromLanguageTag(languageCode)
                     val targetLanguage = when (outputLanguage) {
-                        1 -> TranslateLanguage.JAPANESE
+                        "Japanese" -> TranslateLanguage.JAPANESE
+                        "Spanish" -> TranslateLanguage.SPANISH
+                        "French" -> TranslateLanguage.FRENCH
                         else -> TranslateLanguage.ENGLISH
                     }
 
