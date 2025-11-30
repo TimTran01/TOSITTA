@@ -2,6 +2,7 @@ package com.example.tositta
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -16,18 +17,16 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 import com.google.mlkit.nl.languageid.LanguageIdentification
-import com.google.mlkit.nl.languageid.LanguageIdentifier
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 
-
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private var lastBitmap: Bitmap? = null
 
-    // Global variable to let us set the image language. Default is 0 which is also default for spinner pos 0 (latin)
+    // Global variable to let us set the image language. Default is 0, which is also default for spinner pos 0 (Latin)
     var selectedLanguage: Int = 0
 
     // Variable to choose the output language
@@ -39,9 +38,9 @@ class MainActivity : AppCompatActivity() {
 
             val inputStream = contentResolver.openInputStream(uri)
             val bitmap = BitmapFactory.decodeStream(inputStream)
+            lastBitmap = bitmap // Store the bitmap for later use
 
             binding.imageView.setImageBitmap(bitmap)
-
             runOCR(bitmap)
         }
     }
@@ -57,62 +56,44 @@ class MainActivity : AppCompatActivity() {
 
         // Create Spinner for selecting input language
         val spinnerInput = binding.selectInputLanguageSpinner
-        // List of supported languages
         val languagesInput = listOf("Latin", "Japanese")
-        val adapterInput = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            languagesInput
-        )
+        val adapterInput = ArrayAdapter(this, android.R.layout.simple_spinner_item, languagesInput)
         spinnerInput.adapter = adapterInput
 
-        // When selecting a language, set global 'selectLanguage' variable equal to the index of the selected language
         spinnerInput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                pos: Int,
-                id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
                 selectedLanguage = pos
+                // If an image has already been selected, re-run OCR with the new language
+                lastBitmap?.let {
+                    runOCR(it)
+                }
             }
 
-            // If nothing is selected, set language to default (latin)
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 selectedLanguage = 0
             }
-
         }
 
         // Create Spinner for selecting output language
         val spinnerOutput = binding.selectOutputLanguageSpinner
-        // List of supported languages
         val languagesOutput = listOf("Latin", "Japanese")
-        val adapterOutput = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            languagesOutput
-        )
+        val adapterOutput = ArrayAdapter(this, android.R.layout.simple_spinner_item, languagesOutput)
         spinnerOutput.adapter = adapterOutput
 
-        // When selecting a language, set global 'selectLanguage' variable equal to the index of the selected language
         spinnerOutput.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                pos: Int,
-                id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
                 outputLanguage = pos
+                val currentOcrText = binding.ocrResultTextView.text.toString()
+                // If there's already OCR text, re-translate it with the new target language
+                if (currentOcrText.isNotBlank() && !currentOcrText.startsWith("OCR Error")) {
+                    runTranslation(currentOcrText)
+                }
             }
 
-            //If nothing is selected, set language to default (latin)
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 outputLanguage = 0
             }
-
         }
-
     }
 
     private fun pickImageFromGallery() {
@@ -121,9 +102,8 @@ class MainActivity : AppCompatActivity() {
         pickImageLauncher.launch(intent)
     }
 
-    private fun runOCR(bitmap: android.graphics.Bitmap) {
+    private fun runOCR(bitmap: Bitmap) {
         val image = InputImage.fromBitmap(bitmap, 0)
-        // Uses Latin by default
         val recognizer = when (selectedLanguage) {
             1 -> TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()) // Japanese
             else -> TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) // Latin
@@ -134,41 +114,47 @@ class MainActivity : AppCompatActivity() {
                 binding.ocrResultTextView.text = result.text
                 binding.ocrResultContainer.visibility = View.VISIBLE
                 runTranslation(result.text)
-
             }
             .addOnFailureListener { e ->
                 binding.ocrResultTextView.text = "OCR Error: ${e.message}"
                 binding.ocrResultContainer.visibility = View.VISIBLE
+                // Hide translation sections on OCR error
+                binding.langIDContainer.visibility = View.GONE
+                binding.translatedTextContainer.visibility = View.GONE
             }
-
-
-
-
     }
 
-
-
-    private fun runTranslation(textToTranslate: String){
+    private fun runTranslation(textToTranslate: String) {
         val languageIdentifier = LanguageIdentification.getClient()
         languageIdentifier.identifyLanguage(textToTranslate)
             .addOnSuccessListener { languageCode ->
                 if (languageCode == "und") {
                     binding.langIDTextView.text = "Cannot Determine Language: Make sure you have selected the correct language to detect."
                     binding.langIDContainer.visibility = View.VISIBLE
-                    binding.translatedTextContainer.visibility = View.INVISIBLE
+                    binding.translatedTextContainer.visibility = View.GONE
                 } else {
                     binding.langIDTextView.text = languageCode
                     binding.langIDContainer.visibility = View.VISIBLE
 
+                    val sourceLanguage = TranslateLanguage.fromLanguageTag(languageCode)
+                    val targetLanguage = when (outputLanguage) {
+                        1 -> TranslateLanguage.JAPANESE
+                        else -> TranslateLanguage.ENGLISH
+                    }
+
+                    if (sourceLanguage == null) {
+                        binding.translatedTextTextView.text = "Unsupported language for translation."
+                        binding.translatedTextContainer.visibility = View.VISIBLE
+                        return@addOnSuccessListener
+                    }
+
                     val options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.fromLanguageTag(languageCode).toString())
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+                        .setSourceLanguage(sourceLanguage)
+                        .setTargetLanguage(targetLanguage)
                         .build()
                     val textTranslator = Translation.getClient(options)
 
-                    var conditions = DownloadConditions.Builder()
-                        .requireWifi()
-                        .build()
+                    val conditions = DownloadConditions.Builder().requireWifi().build()
                     textTranslator.downloadModelIfNeeded(conditions)
                         .addOnSuccessListener {
                             textTranslator.translate(textToTranslate)
@@ -178,23 +164,21 @@ class MainActivity : AppCompatActivity() {
                                     textTranslator.close()
                                 }
                                 .addOnFailureListener { exception ->
-                                    binding.translatedTextTextView.text = "Cannot Translate"
+                                    binding.translatedTextTextView.text = "Cannot Translate: ${exception.message}"
                                     binding.translatedTextContainer.visibility = View.VISIBLE
                                     textTranslator.close()
                                 }
                         }
                         .addOnFailureListener { exception ->
-                            binding.translatedTextTextView.text = "Cannot Download Model"
+                            binding.translatedTextTextView.text = "Cannot Download Model: ${exception.message}"
                             binding.translatedTextContainer.visibility = View.VISIBLE
                         }
-
                 }
             }
             .addOnFailureListener {
-                // Model couldn’t be loaded or other internal error.
-                // ...
+                binding.langIDTextView.text = "Language identification failed."
+                binding.langIDContainer.visibility = View.VISIBLE
+                binding.translatedTextContainer.visibility = View.GONE
             }
-
     }
-
 }
