@@ -131,7 +131,6 @@ class MainActivity : AppCompatActivity() {
                 binding.ocrResultTextView.text = "OCR Error: ${e.message}"
                 binding.ocrResultContainer.visibility = View.VISIBLE
                 // Hide translation sections on OCR error
-                binding.langIDContainer.visibility = View.GONE
                 binding.translatedTextContainer.visibility = View.GONE
             }
     }
@@ -143,11 +142,14 @@ class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { languageCode ->
                 // If the language is not detected, show an error message
                 if (languageCode == "und") {
-                    binding.langIDTextView.text = "Cannot Determine Language: Make sure you have selected the correct language to detect."
-                    binding.langIDContainer.visibility = View.VISIBLE
+                    binding.conversionError.text = "Cannot Determine Language: Make sure you have selected the correct language to detect."
+                    binding.ocrResultText.visibility = View.GONE
+                    binding.ocrResultTextView.visibility = View.GONE
                     binding.translatedTextContainer.visibility = View.GONE
                 }
                 else {
+                    binding.conversionError.visibility = View.GONE
+
                     // Store the selected language from the spinner
                     val spinnerLanguageCode = when(selectedLanguage) {
                         "Japanese" -> "ja"
@@ -171,10 +173,14 @@ class MainActivity : AppCompatActivity() {
                             else -> languageCode
                         }
                         suggestionText = "\n(Did you mean to select $detectedLanguageName?)"
+                        binding.suggestionTextView.text = "$suggestionText"
+                        binding.suggestionTextView.visibility = View.VISIBLE
+                    } else {
+                        binding.suggestionTextView.visibility = View.GONE
                     }
 
-                    binding.langIDTextView.text = "$languageCode$suggestionText"
-                    binding.langIDContainer.visibility = View.VISIBLE
+                    binding.ocrResultText.visibility = View.VISIBLE
+                    binding.ocrResultTextView.visibility = View.VISIBLE
 
                     // Set the source and targe languages to translate
                     val sourceLanguage = TranslateLanguage.fromLanguageTag(languageCode)
@@ -224,8 +230,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .addOnFailureListener {
-                binding.langIDTextView.text = "Language identification failed."
-                binding.langIDContainer.visibility = View.VISIBLE
+                binding.conversionError.text = "Language identification failed."
                 binding.translatedTextContainer.visibility = View.GONE
             }
     }

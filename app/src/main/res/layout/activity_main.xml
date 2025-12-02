@@ -22,7 +22,6 @@
             android:id="@+id/selectInputLanguageSpinner"
             android:layout_width="365dp"
             android:layout_height="45dp"
-            android:layout_marginBottom="15dp"
             android:background="@drawable/spinner_bg"
             android:dropDownVerticalOffset="45dp" />
 
@@ -30,7 +29,6 @@
             android:id="@+id/suggestionTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="15dp"
             android:textColor="#C5681A"
             android:textAlignment="center"
             android:visibility="gone" />
@@ -39,6 +37,7 @@
             android:id="@+id/outputLanguageText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
             android:text="Translate to:"
             android:textColor="#000000"
             android:textSize="20sp" />
@@ -72,6 +71,7 @@
             android:visibility="gone">
 
             <TextView
+                android:id="@+id/ocrResultText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -87,32 +87,17 @@
                 android:layout_marginTop="8dp"
                 android:textColor="@android:color/black"
                 android:textSize="16sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/langIDContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Identified Language"
-                android:textColor="@android:color/black"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/langIDTextView"
+                android:id="@+id/conversionError"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:textColor="@android:color/black"
                 android:textSize="16sp" />
+
         </LinearLayout>
+
 
         <LinearLayout
             android:id="@+id/translatedTextContainer"
